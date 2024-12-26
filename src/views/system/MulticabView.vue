@@ -1,11 +1,10 @@
 <template>
   <div>
-
     <div class="video-container">
-        <video autoplay muted loop class="background-video">
-          <source src="/public/images/background.mp4" type="video/mp4" />
-        </video>
-      </div>
+      <video autoplay muted loop class="background-video">
+        <source src="/public/images/background.mp4" type="video/mp4" />
+      </video>
+    </div>
 
     <!-- Routes Section -->
     <div class="routes-container">
@@ -34,14 +33,22 @@
         <div id="search-container">
           <select v-model="startingLocation" @change="updateMap">
             <option value="" disabled selected>Starting Location</option>
-            <option v-for="(barangay, index) in selectedRoute.barangays" :key="index" :value="barangay.name">
+            <option
+              v-for="(barangay, index) in selectedRoute.barangays"
+              :key="index"
+              :value="barangay.name"
+            >
               {{ barangay.name || barangay }}
             </option>
           </select>
 
           <select v-model="endLocation" @change="updateMap">
             <option value="" disabled selected>End Location</option>
-            <option v-for="(barangay, index) in selectedRoute.barangays" :key="index" :value="barangay.name">
+            <option
+              v-for="(barangay, index) in selectedRoute.barangays"
+              :key="index"
+              :value="barangay.name"
+            >
               {{ barangay.name || barangay }}
             </option>
           </select>
@@ -51,7 +58,7 @@
           Save Route
         </button>
         <!-- Map -->
-        <div id="map" style="height: 70vh; margin-top: 10px;"></div>
+        <div id="map" style="height: 70vh; margin-top: 10px"></div>
 
         <!-- Close Modal Button -->
         <button @click="closeRouteModal" class="close-modal-button">Close Modal</button>
@@ -61,194 +68,274 @@
 </template>
 
 <script>
-
 import { supabase } from '../../supabaseClient'
-import L from 'leaflet'; // Import Leaflet
-import 'leaflet-routing-machine'; // Import Leaflet Routing Machine
-import { ref, onMounted, watch } from 'vue';
+import L from 'leaflet' // Import Leaflet
+import 'leaflet-routing-machine' // Import Leaflet Routing Machine
+import { ref, onMounted, watch } from 'vue'
 
 export default {
   data() {
     return {
-      routes:[
-      {
-        id: "1",
-        barangays: [
-          { name: "Bangcasi Airport" }, { name: "Dumalagan Butuan" }, { name: "J.C Aquino Avenue" },
-          { name: "A.D. Curato St. Butuan" }, { name: "Durano St. Butuan" },
-          { name: "T. Calo St.Butuan" },
-        ]
-      },
+      routes: [
         {
-        id: "2",
-        barangays: [
-          { name: "Bangcasi" }, { name: "Dumalagan" }, { name: "J.C Aquino Avenue" },
-          { name: "North Montilla Blvd" }, { name: "T. Calo St.Butuan" },
-          { name: "J.C Aquino Ave" }, { name: "Dumalagan" }
-        ]
-      },
-      {
-        id: "4",
-        barangays: [
-          { name: "Bangcasi" }, { name: "Dumalagan" }, { name: "J.C Aquino Avenue" },
-          { name: "A. D. Curato St. Butuan" }, { name: "T. Sanchez St. Butuan" },
-          { name: "M. Calo St." }, { name: "G. Flores St. Butuan" },
-          { name: "Rosales St. " }, { name: "North Montilla Blvd. " },
-          { name: "BOPAI Puregold Butuan Tabuan" }, { name: "Holy Redeemer" },
-          { name: "Butuan City Hall" }, { name: "Gaisano Butuan" },
-          { name: "J. C. Aquino Butuan" }, { name: "Dumalagan" }
-        ]
-      },
-      {
-        id: "8",
-        barangays: [
-          { name: "Sto. Nino Diocesan Shrine " }, { name: "Los Angeles Butuan City" }, { name: "Sumilihon Butuan City" },
-          { name: "Taguibo" }, { name: "Ampayon" }, { name: "Philippine Science High School Butuan" },
-          { name: "Tiniwisan" }, { name: "Baan Butuan City" }, { name: "J.C. Aquino Ave." },
-          { name: "J. Rosales St. " }, { name: "Butuan City Hall" }, { name: "J. Satorre St." },
-          { name: "Jeels Masagana Farm" }, { name: "Salvador Calo St." }, { name: "Langihan Public Market" },
-          { name: "Magsaysay St. Butuan" }, { name: "Andaya St." }, { name: "North Montilla Blvd." },
-          { name: "McDonald's Butuan Downtown" }, { name: "R. Calo St." }, { name: "T. Sanchez St." },
-          { name: "M. Calo St." }, { name: "Baan Viaduct" },{ name: "Baan Km. 3" }, { name: "Ampayon" },
-          { name: "Taguibo" }, { name: "Sumilihon" }
-        ]
-      },
-      {
-        id: "12",
-        barangays: [
-          { name: "Amparo Butuan" }, { name: "Bit-os" }, { name: "Gaisano Butuan" },
-          { name: "San Vicente Butuan City" }, { name: "Montilla Blvd. Butuan" }, { name: "Holy Redeemer" },
-          { name: "City Hall" }, { name: "Mandacpan Butuan City" },
-        ]
-      },
-      {
-        id: "13",
-        barangays: [
-          { name: "Banza National High School Butuan" }, { name: "Brgy. Maug Butuan City" }, { name: "Mahogany Butuan City" },
-          { name: "Baan Butuan" }, { name: "M. Calo St. Butuan" },{ name: "G. Flores Avenue Butuan" }, { name: "Rosales St. Butuan City" }, { name: "North Montilla Blvd." },
-          { name: "Obrero Elem. School" }, { name: "Langihan Public Market" }, { name: "Butuan City Hall" },
-          { name: "J. Rosales St." }, { name: "J. C. Aquino Ave. (DBP)" }, { name: "Baan Viaduct" },
-          { name: "Brgy. Mahogany" }, { name: "Brgy. Maug" }, { name: "Brgy. Banza" }
-        ]
-      },
-      {
-        id: "10",
-        barangays: [
-          { name: "Dumalagan Butuan" }, { name: "J.C. Aquino Ave. Butuan" },
-          { name: "Baan Butuan" }, { name: "Baan Km. 3" },
-          { name: "Tiniwisan Butuan" }, { name: "Philippine Science High School Butuan" },
-          { name: "Ampayon" }, { name: "Vice Versa" }
-        ]
-      },
-      {
-        id: "7",
-        barangays: [
-          { name: "De Oro Butuan" }, { name: "Taligaman Butuan" }, { name: "Antongalon Elem. School Butuan" },
-          { name: "LTFRB Butuan" }, { name: "Ampayon Butuan" }, { name: "Caraga State University" },
-          { name: "Philippine Science High School Butuan" }, { name: "Tiniwisan Butuan" }, { name: "Butuan Medical Center" },
-          { name: "Baan Butuan" },
-          // Column 2
-          { name: "M. Calo St." }, { name: "G. Flores St." }, { name: "North Montilla Blvd. Butuan" },
-          { name: "Andaya St. Butuan" }, { name: "Langihan Public Market" }, { name: "Butuan City Hall" },
-          { name: "Development Bank Of The Philippines" }, { name: "SM Butuan" }, { name: "R. Calo St. Butuan" },
-          { name: "T. Sanchez St. Butuan" }, { name: "M. Calo St. Butuan" },
-          // Column 3
-          { name: "Baan Viaduct Butuan" }, { name: "Baan Km. 3" },
-          { name: "Tiniwisan Butuan" },{ name: "Ampayon" }, { name: "Antongalon Butuan" }, 
-          { name: "Taligaman Butuan" },
-        ]
-      },
-      {
-        id: "14",
-        barangays: [
-          { name: "Ampayon Butuan City" }, { name: "Tiniwisan Butuan City" }, { name: "Alviola Butuan City" },
-          { name: "ERA STORE Butuan City" }, { name: "Lemon Butuan City" }, { name: "Pigdaulan Butuan City" },
-          { name: "Mahay Butuan City" }, { name: "San Vicente Butuan City" },
-          { name: "Montilla Boulevard" }, { name: "SM Butuan City" },
-          { name: "Gaisano Butuan City" }, { name: "Robinsons Butuan City" }
-        ]
-      }
-    ],
-    isModalOpen: false, // Modal state
+          id: '1',
+          barangays: [
+            { name: 'Bangcasi Airport' },
+            { name: 'Dumalagan Butuan' },
+            { name: 'J.C Aquino Avenue' },
+            { name: 'A.D. Curato St. Butuan' },
+            { name: 'Durano St. Butuan' },
+            { name: 'T. Calo St.Butuan' },
+          ],
+        },
+        {
+          id: '2',
+          barangays: [
+            { name: 'Bangcasi' },
+            { name: 'Dumalagan' },
+            { name: 'J.C Aquino Avenue' },
+            { name: 'North Montilla Blvd' },
+            { name: 'T. Calo St.Butuan' },
+            { name: 'J.C Aquino Ave' },
+            { name: 'Dumalagan' },
+          ],
+        },
+        {
+          id: '4',
+          barangays: [
+            { name: 'Bangcasi' },
+            { name: 'Dumalagan' },
+            { name: 'J.C Aquino Avenue' },
+            { name: 'A. D. Curato St. Butuan' },
+            { name: 'T. Sanchez St. Butuan' },
+            { name: 'M. Calo St.' },
+            { name: 'G. Flores St. Butuan' },
+            { name: 'Rosales St. ' },
+            { name: 'North Montilla Blvd. ' },
+            { name: 'BOPAI Puregold Butuan Tabuan' },
+            { name: 'Holy Redeemer' },
+            { name: 'Butuan City Hall' },
+            { name: 'Gaisano Butuan' },
+            { name: 'J. C. Aquino Butuan' },
+            { name: 'Dumalagan' },
+          ],
+        },
+        {
+          id: '8',
+          barangays: [
+            { name: 'Sto. Nino Diocesan Shrine ' },
+            { name: 'Los Angeles Butuan City' },
+            { name: 'Sumilihon Butuan City' },
+            { name: 'Taguibo' },
+            { name: 'Ampayon' },
+            { name: 'Philippine Science High School Butuan' },
+            { name: 'Tiniwisan' },
+            { name: 'Baan Butuan City' },
+            { name: 'J.C. Aquino Ave.' },
+            { name: 'J. Rosales St. ' },
+            { name: 'Butuan City Hall' },
+            { name: 'J. Satorre St.' },
+            { name: 'Jeels Masagana Farm' },
+            { name: 'Salvador Calo St.' },
+            { name: 'Langihan Public Market' },
+            { name: 'Magsaysay St. Butuan' },
+            { name: 'Andaya St.' },
+            { name: 'North Montilla Blvd.' },
+            { name: "McDonald's Butuan Downtown" },
+            { name: 'R. Calo St.' },
+            { name: 'T. Sanchez St.' },
+            { name: 'M. Calo St.' },
+            { name: 'Baan Viaduct' },
+            { name: 'Baan Km. 3' },
+            { name: 'Ampayon' },
+            { name: 'Taguibo' },
+            { name: 'Sumilihon' },
+          ],
+        },
+        {
+          id: '12',
+          barangays: [
+            { name: 'Amparo Butuan' },
+            { name: 'Bit-os' },
+            { name: 'Gaisano Butuan' },
+            { name: 'San Vicente Butuan City' },
+            { name: 'Montilla Blvd. Butuan' },
+            { name: 'Holy Redeemer' },
+            { name: 'City Hall' },
+            { name: 'Mandacpan Butuan City' },
+          ],
+        },
+        {
+          id: '13',
+          barangays: [
+            { name: 'Banza National High School Butuan' },
+            { name: 'Brgy. Maug Butuan City' },
+            { name: 'Mahogany Butuan City' },
+            { name: 'Baan Butuan' },
+            { name: 'M. Calo St. Butuan' },
+            { name: 'G. Flores Avenue Butuan' },
+            { name: 'Rosales St. Butuan City' },
+            { name: 'North Montilla Blvd.' },
+            { name: 'Obrero Elem. School' },
+            { name: 'Langihan Public Market' },
+            { name: 'Butuan City Hall' },
+            { name: 'J. Rosales St.' },
+            { name: 'J. C. Aquino Ave. (DBP)' },
+            { name: 'Baan Viaduct' },
+            { name: 'Brgy. Mahogany' },
+            { name: 'Brgy. Maug' },
+            { name: 'Brgy. Banza' },
+          ],
+        },
+        {
+          id: '10',
+          barangays: [
+            { name: 'Dumalagan Butuan' },
+            { name: 'J.C. Aquino Ave. Butuan' },
+            { name: 'Baan Butuan' },
+            { name: 'Baan Km. 3' },
+            { name: 'Tiniwisan Butuan' },
+            { name: 'Philippine Science High School Butuan' },
+            { name: 'Ampayon' },
+            { name: 'Vice Versa' },
+          ],
+        },
+        {
+          id: '7',
+          barangays: [
+            { name: 'De Oro Butuan' },
+            { name: 'Taligaman Butuan' },
+            { name: 'Antongalon Elem. School Butuan' },
+            { name: 'LTFRB Butuan' },
+            { name: 'Ampayon Butuan' },
+            { name: 'Caraga State University' },
+            { name: 'Philippine Science High School Butuan' },
+            { name: 'Tiniwisan Butuan' },
+            { name: 'Butuan Medical Center' },
+            { name: 'Baan Butuan' },
+            // Column 2
+            { name: 'M. Calo St.' },
+            { name: 'G. Flores St.' },
+            { name: 'North Montilla Blvd. Butuan' },
+            { name: 'Andaya St. Butuan' },
+            { name: 'Langihan Public Market' },
+            { name: 'Butuan City Hall' },
+            { name: 'Development Bank Of The Philippines' },
+            { name: 'SM Butuan' },
+            { name: 'R. Calo St. Butuan' },
+            { name: 'T. Sanchez St. Butuan' },
+            { name: 'M. Calo St. Butuan' },
+            // Column 3
+            { name: 'Baan Viaduct Butuan' },
+            { name: 'Baan Km. 3' },
+            { name: 'Tiniwisan Butuan' },
+            { name: 'Ampayon' },
+            { name: 'Antongalon Butuan' },
+            { name: 'Taligaman Butuan' },
+          ],
+        },
+        {
+          id: '14',
+          barangays: [
+            { name: 'Ampayon Butuan City' },
+            { name: 'Tiniwisan Butuan City' },
+            { name: 'Alviola Butuan City' },
+            { name: 'ERA STORE Butuan City' },
+            { name: 'Lemon Butuan City' },
+            { name: 'Pigdaulan Butuan City' },
+            { name: 'Mahay Butuan City' },
+            { name: 'San Vicente Butuan City' },
+            { name: 'Montilla Boulevard' },
+            { name: 'SM Butuan City' },
+            { name: 'Gaisano Butuan City' },
+            { name: 'Robinsons Butuan City' },
+          ],
+        },
+      ],
+      isModalOpen: false, // Modal state
       selectedRoute: null, // Selected route
       startingLocation: '',
       endLocation: '',
       map: null,
       markers: [], // Array to store markers
-      routeControl: null // Routing control instance
-    };
-},
-methods: {
+      routeControl: null, // Routing control instance
+    }
+  },
+  methods: {
     async getCoordinatesFromGeocodingAPI(location) {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&addressdetails=1`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&addressdetails=1`
+      const response = await fetch(url)
+      const data = await response.json()
       if (data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
-        return { lat, lon };
+        const lat = parseFloat(data[0].lat)
+        const lon = parseFloat(data[0].lon)
+        return { lat, lon }
       } else {
-        throw new Error(`Coordinates not found for location: ${location}`);
+        throw new Error(`Coordinates not found for location: ${location}`)
       }
     },
 
     async useGeolocation() {
       return new Promise((resolve, reject) => {
         if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
+          navigator.geolocation.getCurrentPosition(resolve, reject)
         } else {
-          reject(new Error("Geolocation is not supported by this browser."));
+          reject(new Error('Geolocation is not supported by this browser.'))
         }
-      });
+      })
     },
 
     async updateMap() {
       // Clear previous markers and routing
-      this.markers.forEach(marker => this.map.removeLayer(marker));
-      this.markers = [];
+      this.markers.forEach((marker) => this.map.removeLayer(marker))
+      this.markers = []
       if (this.routeControl) {
-        this.map.removeControl(this.routeControl);
+        this.map.removeControl(this.routeControl)
       }
 
-      const locations = [];
+      const locations = []
 
       // Add current location marker if geolocation is available
       try {
-        const position = await this.useGeolocation();
-        const currentLocation = L.latLng(position.coords.latitude, position.coords.longitude);
-        const startMarker = L.marker(currentLocation).bindPopup('Starting Location: Your Current Location');
-        this.markers.push(startMarker);
-        locations.push(currentLocation);
-        startMarker.addTo(this.map);
+        const position = await this.useGeolocation()
+        const currentLocation = L.latLng(position.coords.latitude, position.coords.longitude)
+        const startMarker = L.marker(currentLocation).bindPopup(
+          'Starting Location: Your Current Location',
+        )
+        this.markers.push(startMarker)
+        locations.push(currentLocation)
+        startMarker.addTo(this.map)
       } catch (error) {
-        console.error("Error getting geolocation:", error);
+        console.error('Error getting geolocation:', error)
       }
 
       // Get coordinates for the starting location
       if (this.startingLocation) {
         try {
-          const startCoords = await this.getCoordinatesFromGeocodingAPI(this.startingLocation);
-          const startLatLng = L.latLng(startCoords.lat, startCoords.lon);
-          const startMarker = L.marker(startLatLng).bindPopup(`Starting Location: ${this.startingLocation}`);
-          this.markers.push(startMarker);
-          locations.push(startLatLng);
-          startMarker.addTo(this.map);
+          const startCoords = await this.getCoordinatesFromGeocodingAPI(this.startingLocation)
+          const startLatLng = L.latLng(startCoords.lat, startCoords.lon)
+          const startMarker = L.marker(startLatLng).bindPopup(
+            `Starting Location: ${this.startingLocation}`,
+          )
+          this.markers.push(startMarker)
+          locations.push(startLatLng)
+          startMarker.addTo(this.map)
         } catch (error) {
-          console.error("Error fetching coordinates for starting location:", error);
+          console.error('Error fetching coordinates for starting location:', error)
         }
       }
 
       // Get coordinates for the end location
       if (this.endLocation) {
         try {
-          const endCoords = await this.getCoordinatesFromGeocodingAPI(this.endLocation);
-          const endLatLng = L.latLng(endCoords.lat, endCoords.lon);
-          const endMarker = L.marker(endLatLng).bindPopup(`End Location: ${this.endLocation}`);
-          this.markers.push(endMarker);
-          locations.push(endLatLng);
-          endMarker.addTo(this.map);
+          const endCoords = await this.getCoordinatesFromGeocodingAPI(this.endLocation)
+          const endLatLng = L.latLng(endCoords.lat, endCoords.lon)
+          const endMarker = L.marker(endLatLng).bindPopup(`End Location: ${this.endLocation}`)
+          this.markers.push(endMarker)
+          locations.push(endLatLng)
+          endMarker.addTo(this.map)
         } catch (error) {
-          console.error("Error fetching coordinates for end location:", error);
+          console.error('Error fetching coordinates for end location:', error)
         }
       }
 
@@ -256,106 +343,105 @@ methods: {
       if (locations.length === 2) {
         this.routeControl = L.Routing.control({
           waypoints: locations,
-        }).addTo(this.map);
+        }).addTo(this.map)
       }
     },
     openRouteModal(route) {
-  this.selectedRoute = route;
-  this.isModalOpen = true;
-  this.showRoute();  // Corrected: Ensure showRoute is called here
-},
+      this.selectedRoute = route
+      this.isModalOpen = true
+      this.showRoute() // Corrected: Ensure showRoute is called here
+    },
 
-async showRoute() {
-  // Ensure the locations array is properly populated with coordinates of the barangays
-  const locations = [];
+    async showRoute() {
+      // Ensure the locations array is properly populated with coordinates of the barangays
+      const locations = []
 
-  // Process each barangay one at a time
-  for (const barangay of this.selectedRoute.barangays) {
-    try {
-      const coords = await this.getCoordinatesFromGeocodingAPI(barangay.name);
-      
-      // If coordinates are found, add to the locations
-      if (coords) {
-        const latLng = L.latLng(coords.lat, coords.lon);
-        locations.push(latLng);
-      } else {
-        console.error(`Coordinates not found for barangay: ${barangay.name}`);
-        continue; // Skip to the next barangay if this one fails
+      // Process each barangay one at a time
+      for (const barangay of this.selectedRoute.barangays) {
+        try {
+          const coords = await this.getCoordinatesFromGeocodingAPI(barangay.name)
+
+          // If coordinates are found, add to the locations
+          if (coords) {
+            const latLng = L.latLng(coords.lat, coords.lon)
+            locations.push(latLng)
+          } else {
+            console.error(`Coordinates not found for barangay: ${barangay.name}`)
+            continue // Skip to the next barangay if this one fails
+          }
+
+          // Only create the route when you have at least 5 coordinates
+          if (locations.length >= 5 && !this.routeControl) {
+            // Create and add the routing control to the map
+            this.routeControl = L.Routing.control({
+              waypoints: locations,
+              routeWhileDragging: true, // Enable route dragging
+            }).addTo(this.map)
+
+            // Hide route instructions immediately after the route is found
+            this.routeControl.on('routesfound', () => {
+              this.routeControl.getContainer().style.display = 'none'
+            })
+
+            // Break out of the loop once the route control is created
+            break
+          }
+        } catch (error) {
+          console.error(`Error fetching coordinates for barangay: ${barangay.name}`, error)
+          continue // Continue searching for the next barangay if an error occurs
+        }
       }
 
-      // Only create the route when you have at least 5 coordinates
-      if (locations.length >= 5 && !this.routeControl) {
-        // Create and add the routing control to the map
-        this.routeControl = L.Routing.control({
-          waypoints: locations,
-          routeWhileDragging: true, // Enable route dragging
-        }).addTo(this.map);
-
-        // Hide route instructions immediately after the route is found
-        this.routeControl.on('routesfound', () => {
-          this.routeControl.getContainer().style.display = 'none';
-        });
-
-        // Break out of the loop once the route control is created
-        break;
+      // Optional: Check if no valid route was found after processing all barangays
+      if (locations.length < 5) {
+        console.log('Not enough valid coordinates to create a route.')
       }
-
-    } catch (error) {
-      console.error(`Error fetching coordinates for barangay: ${barangay.name}`, error);
-      continue; // Continue searching for the next barangay if an error occurs
-    }
-  }
-
-  // Optional: Check if no valid route was found after processing all barangays
-  if (locations.length < 5) {
-    console.log("Not enough valid coordinates to create a route.");
-  }
-}
-,
-
-
+    },
     closeRouteModal() {
-      this.isModalOpen = false;
+      this.isModalOpen = false
       // Reset locations when modal is closed
-      this.startingLocation = '';
-      this.endLocation = '';
-      this.resetRoute();
+      this.startingLocation = ''
+      this.endLocation = ''
+      this.resetRoute()
       if (this.map) {
-        this.map.remove();
-        this.map = null;
+        this.map.remove()
+        this.map = null
       }
     },
     resetRoute() {
-  if (this.routeControl) {
-    this.map.removeControl(this.routeControl);  // Remove the route from the map
-    this.routeControl = null;  // Clear the route control reference
-  }
+      if (this.routeControl) {
+        this.map.removeControl(this.routeControl) // Remove the route from the map
+        this.routeControl = null // Clear the route control reference
+      }
 
-  // Optionally, clear any other markers or data
-  // Example: if you have a markerLayer for other markers
-  if (this.markerLayer) {
-    this.markerLayer.clearLayers();  // Clear any other markers
-  }
-  
-  // Clear the locations array
-  this.locations = [];
-},
+      // Optionally, clear any other markers or data
+      // Example: if you have a markerLayer for other markers
+      if (this.markerLayer) {
+        this.markerLayer.clearLayers() // Clear any other markers
+      }
+
+      // Clear the locations array
+      this.locations = []
+    },
 
     async saveRoute(startingLocation, endLocation) {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser()
 
         if (userError) {
-          console.error("Error retrieving user:", userError.message);
-          return;
+          console.error('Error retrieving user:', userError.message)
+          return
         }
 
         if (!user || !user.id) {
-          console.error("User ID is missing, cannot save route data.");
-          return;
+          console.error('User ID is missing, cannot save route data.')
+          return
         }
 
-        const userId = user.id;
+        const userId = user.id
 
         const { data: routeData, error: routeError } = await supabase
           .from('routes')
@@ -365,39 +451,38 @@ async showRoute() {
               origin: startingLocation,
               destination: endLocation,
               vehicle_type: 'multicab',
-              v_id: userId
-            }
+              v_id: userId,
+            },
           ])
-          .select();
+          .select()
 
         if (routeError) {
-          console.error("Error saving route:", routeError);
-          return;
+          console.error('Error saving route:', routeError)
+          return
         }
 
-        const routeId = routeData[0].id;
+        const routeId = routeData[0].id
 
         const { data: tripData, error: tripError } = await supabase
           .from('trips')
           .insert([
             {
               route_id: routeId,
-              date_of_trip: new Date().toISOString()
-            }
+              date_of_trip: new Date().toISOString(),
+            },
           ])
-          .select();
+          .select()
 
         if (tripError) {
-          console.error("Error saving trip:", tripError);
-          return;
+          console.error('Error saving trip:', tripError)
+          return
         }
 
-        alert("Trip saved successfully with route_id:", routeId);
-
+        alert('Trip saved successfully with route_id:', routeId)
       } catch (error) {
-        console.error("Error saving route and trip:", error);
+        console.error('Error saving route and trip:', error)
       }
-    }
+    },
   },
 
   watch: {
@@ -405,22 +490,22 @@ async showRoute() {
       if (newVal) {
         this.$nextTick(() => {
           if (!this.map) {
-            this.map = L.map('map').setView([8.9492, 125.5435], 13);
+            this.map = L.map('map').setView([8.9492, 125.5435], 13)
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
               maxZoom: 19,
-              attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            }).addTo(this.map);
+              attribution:
+                '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            }).addTo(this.map)
           } else {
-            this.map.invalidateSize();
+            this.map.invalidateSize()
           }
 
-          this.updateMap();
-        });
+          this.updateMap()
+        })
       }
-    }
-  }
+    },
+  },
 }
-
 </script>
 
 <style scoped>
@@ -448,7 +533,7 @@ async showRoute() {
 }
 
 .save-button {
-  background-color: #4CAF50; /* Green */
+  background-color: #4caf50; /* Green */
   color: white;
   padding: 10px 20px;
   border: none;
@@ -563,8 +648,6 @@ async showRoute() {
   width: 100%;
 }
 
-/* Media Queries for Responsiveness */
-
 @media (max-width: 768px) {
   .routes-grid {
     grid-template-columns: 1fr; /* Stack cards vertically on smaller screens */
@@ -573,6 +656,8 @@ async showRoute() {
   .modal-content {
     width: 90%; /* Increase the width on smaller screens */
     padding: 15px; /* Adjust padding */
+    max-height: 50vh; /* Smaller max height for medium screens */
+    overflow-y: auto; /* Enable scrolling if content overflows */
   }
 
   .save-button,
@@ -596,7 +681,7 @@ async showRoute() {
   }
 
   #map {
-    height: 50vh; /* Adjust map size for mobile */
+    height: 40vh; /* Adjust map size for mobile */
   }
 }
 
@@ -610,10 +695,16 @@ async showRoute() {
   .modal-content {
     width: 95%; /* Allow modal content to take more space on very small screens */
     padding: 10px;
+    max-height: 90vh; /* Further reduce max height on very small screens */
+    overflow-y: auto; /* Enable scrolling if content overflows */
   }
 
   .route-card {
     padding: 12px; /* Further reduce padding on small screens */
+  }
+
+  #map {
+    height: 30vh; /* Adjust map size for very small screens */
   }
 }
 </style>
